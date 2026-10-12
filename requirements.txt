@@ -1,0 +1,11 @@
+﻿langgraph>=1.0
+langchain>=1.0
+langchain-google-genai
+fastapi
+uvicorn
+httpx
+pydantic-settings
+pytest
+pytest-asyncio
+respx
+python-dotenv
