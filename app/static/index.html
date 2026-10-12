@@ -1,0 +1,204 @@
+<!doctype html> <!-- modern HTML mode -->
+<html lang="en"> <!-- page language -->
+<head> <!-- page metadata -->
+<meta charset="utf-8"> <!-- support é and ’ -->
+<meta name="viewport" content="width=device-width,initial-scale=1"> <!-- mobile friendly -->
+<title>Pokémon Chatbot</title> <!-- browser tab title -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script> <!-- markdown -> HTML -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script> <!-- sanitizes that HTML -->
+<style> /* page styles */
+:root { --bg:#f4f5f9; --card:#fff; --text:#1f2430; --accent:#e3350d; --user:#e3350d; --bot:#eceef4; } /* light theme colours */
+@media (prefers-color-scheme: dark) { :root { --bg:#14161c; --card:#1e2129; --text:#e8eaf0; --bot:#2a2e39; } } /* dark theme colours */
+* { box-sizing: border-box; } /* predictable sizing */
+body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui,sans-serif; } /* page base */
+main { max-width:720px; height:100dvh; margin:0 auto; display:flex; flex-direction:column; padding:0 16px; } /* centred column */
+header { display:flex; justify-content:space-between; align-items:center; padding:16px 0; } /* title row */
+h1 { margin:0; font-size:20px; } /* title size */
+button { font:inherit; cursor:pointer; } /* buttons use page font */
+#new { border:1px solid var(--accent); color:var(--accent); background:none; border-radius:8px; padding:6px 12px; } /* New chat button */
+#log { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-bottom:8px; } /* scrolling message list */
+.msg { max-width:85%; padding:10px 14px; border-radius:16px; word-wrap:break-word; } /* bubble shape */
+.msg p { margin:0 0 8px; } /* paragraph spacing in bubbles */
+.msg p:last-child { margin:0; } /* no gap after last paragraph */
+.bot { background:var(--bot); align-self:flex-start; } /* bot bubble on the left */
+.user { background:var(--user); color:#fff; align-self:flex-end; } /* user bubble on the right */
+.dots span { display:inline-block; width:8px; height:8px; margin:0 2px; border-radius:50%; background:#888; animation:blink 1.2s infinite; } /* typing dot */
+.dots span:nth-child(2) { animation-delay:.2s; } /* stagger second dot */
+.dots span:nth-child(3) { animation-delay:.4s; } /* stagger third dot */
+@keyframes blink { 0%,80%,100% { opacity:.2; } 40% { opacity:1; } } /* pulsing effect */
+#chips { display:flex; flex-wrap:wrap; gap:8px; padding:8px 0; } /* suggestion row */
+.chip { border:1px solid #9aa0b2; background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font-size:14px; } /* chip look */
+form { display:flex; gap:8px; padding:8px 0 16px; } /* input row */
+input { flex:1; padding:12px; border-radius:10px; border:1px solid #9aa0b2; background:var(--card); color:var(--text); font:inherit; } /* text box */
+#send { background:var(--accent); color:#fff; border:0; border-radius:10px; padding:0 20px; } /* send button */
+.cards { display:flex; gap:10px; flex-wrap:wrap; } /* cards side by side */
+.card { flex:1 1 200px; max-width:260px; background:var(--card); border-radius:14px; padding:12px; box-shadow:0 1px 4px #0002; } /* card box */
+.card img { width:100%; max-height:160px; object-fit:contain; } /* artwork */
+.card h3 { margin:4px 0 0; } /* name */
+.cat { font-size:13px; opacity:.7; } /* category */
+.types { display:flex; gap:6px; margin:6px 0; } /* badge row */
+.badge { color:#fff; border-radius:999px; padding:1px 10px; font-size:12px; text-transform:capitalize; } /* type badge */
+.stat { display:grid; grid-template-columns:90px 1fr 32px; align-items:center; gap:6px; font-size:12px; } /* stat row */
+.bar { background:var(--bot); border-radius:4px; height:8px; } /* bar track */
+.bar i { display:block; height:100%; border-radius:4px; } /* bar fill */
+.src { display:block; margin-top:8px; font-size:12px; color:var(--accent); } /* source link */
+#login { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; padding:16px; } /* full-screen login */
+#login form { flex-direction:column; gap:10px; width:100%; max-width:320px; background:var(--card); padding:24px; border-radius:14px; box-shadow:0 1px 4px #0002; } /* login box */
+#loginErr { color:var(--accent); min-height:1.5em; margin:0; } /* error line */
+[hidden] { display:none !important; } /* make hidden win over display rules */
+button:disabled, input:disabled { opacity:.5; cursor:not-allowed; } /* visible blocked state */
+</style>
+</head>
+<body> <!-- visible page -->
+<div id="login" hidden> <!-- shown until the user logs in -->
+  <form id="loginForm"> <!-- password form -->
+    <h2>⚡ Pokémon Chatbot</h2> <!-- title -->
+    <input id="user" placeholder="Username" autocomplete="username" required> <!-- username box -->
+    <input id="pw" type="password" placeholder="Password" autocomplete="current-password" required> <!-- password box -->
+    <p id="loginErr"></p> <!-- error message -->
+    <button id="loginBtn" class="chip">Log in</button> <!-- submit -->
+  </form>
+</div>
+<main> <!-- centred chat column -->
+  <header><h1>⚡ Pokémon Chatbot</h1><button id="new" type="button">New chat</button></header> <!-- title + reset -->
+  <div id="log" aria-live="polite"></div> <!-- messages appear here -->
+  <div id="chips"></div> <!-- suggested questions appear here -->
+  <form id="form"> <!-- message form -->
+    <input id="text" placeholder="Ask about any Pokémon…" maxlength="1000" autocomplete="off"> <!-- user input -->
+    <button id="send">Send</button> <!-- submit button -->
+  </form>
+</main>
+<script> // chat logic
+const log = document.getElementById("log"); // message list element
+const text = document.getElementById("text"); // input element
+const send = document.getElementById("send"); // send button element
+const SUGGESTIONS = ["What's a Pikachu?", "How's that different from a Charizard?", "What does Eevee evolve into?"]; // starter chips
+const COLORS = { fire:"#f08030", water:"#6890f0", grass:"#78c850", electric:"#f8d030", flying:"#a890f0", poison:"#a040a0", normal:"#a8a878", ground:"#e0c068", rock:"#b8a038", bug:"#a8b820", ghost:"#705898", steel:"#b8b8d0", psychic:"#f85888", ice:"#98d8d8", dragon:"#7038f8", dark:"#705848", fairy:"#ee99ac", fighting:"#c03028" }; // type badge colours
+let sessionId = null; // current chat session
+let token = sessionStorage.getItem("token") || ""; // login token, kept for this tab only
+
+function showLogin() { // ask for the password
+  token = ""; sessionStorage.removeItem("token"); // forget any old token
+  document.getElementById("login").hidden = false; // show the login screen
+  document.getElementById("user").focus(); // ready to type
+}
+
+function authed(url, options = {}) { // fetch with the login token attached
+  const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` }; // add bearer header
+  return fetch(url, { ...options, headers }).then((res) => { if (res.status === 401) showLogin(); return res; }); // expired -> log in again
+}
+
+function addBubble(role, content) { // add one chat bubble
+  const div = document.createElement("div"); // bubble element
+  div.className = `msg ${role}`; // style by role
+  if (role === "bot") div.innerHTML = DOMPurify.sanitize(marked.parse(content)); // safe markdown for bot replies
+  else div.textContent = content; // plain text for user messages
+  log.appendChild(div); // show it
+  log.scrollTop = log.scrollHeight; // keep latest message visible
+  return div; // allow callers to remove it later
+}
+
+function el(tag, cls, content) { // tiny DOM helper
+  const node = document.createElement(tag); // create element
+  if (cls) node.className = cls; // set classes
+  if (content !== undefined) node.textContent = content; // safe text
+  return node; // hand it back
+}
+
+function renderCards(cards) { // show Pokémon cards side by side
+  const row = el("div", "cards"); // flex row of cards
+  cards.forEach((c) => { // one card per Pokémon
+    const card = el("div", "card"); // card container
+    if (c.image) { const img = el("img"); img.src = c.image; img.alt = c.name; card.appendChild(img); } // official artwork
+    card.appendChild(el("h3", "", `#${c.id} ${c.name[0].toUpperCase()}${c.name.slice(1)}`)); // number + name
+    card.appendChild(el("div", "cat", c.category)); // category line
+    const types = el("div", "types"); // badge row
+    c.types.forEach((t) => { const b = el("span", "badge", t); b.style.background = COLORS[t] || "#888"; types.appendChild(b); }); // coloured type badge
+    card.appendChild(types); // add badges
+    Object.entries(c.stats).forEach(([k, v]) => { // one bar per stat
+      const line = el("div", "stat"); // stat row
+      line.appendChild(el("span", "", k)); // stat name
+      const bar = el("div", "bar"); // bar track
+      const fill = el("i"); fill.style.width = `${Math.min(100, v / 2)}%`; fill.style.background = v >= 100 ? "#4caf50" : "#f5a623"; // bar length by value
+      bar.appendChild(fill); line.appendChild(bar); line.appendChild(el("b", "", v)); // bar + number
+      card.appendChild(line); // add row
+    });
+    const link = el("a", "src", "Source: PokeAPI"); link.href = c.source; link.target = "_blank"; link.rel = "noopener"; // data source link
+    card.appendChild(link); row.appendChild(card); // finish card
+  });
+  log.appendChild(row); log.scrollTop = log.scrollHeight; // show and scroll
+}
+
+function setBusy(busy) { // block or unblock input
+  text.disabled = send.disabled = busy; // disable box and button together
+  if (!busy) text.focus(); // ready for the next question
+}
+
+async function newChat() { // start a fresh session
+  log.innerHTML = ""; // clear old messages
+  setBusy(true); // block until the greeting arrives
+  try {
+    const res = await authed("/api/sessions", { method: "POST" }); // create session
+    if (res.status === 401) return; // login screen is showing
+    const data = await res.json(); // parse response
+    if (!res.ok) { addBubble("bot", data.detail); setBusy(true); return; } // show config errors and stay blocked
+    sessionId = data.session_id; // remember session
+    addBubble("bot", data.greeting); // show the greeting
+  } catch { addBubble("bot", "Couldn't start a chat. Please refresh the page."); } // network failure
+  setBusy(false); // allow typing
+}
+
+async function ask(message) { // send one message and show the reply
+  addBubble("user", message); // show what the user said
+  setBusy(true); // block further input while waiting
+  const typing = addBubble("bot", ""); // placeholder bubble
+  typing.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>'; // typing indicator
+  try {
+    const res = await authed(`/api/sessions/${sessionId}/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) }); // call the API
+    typing.remove(); // drop the indicator
+    if (res.status === 401) { setBusy(false); return; } // login screen is showing
+    const data = await res.json(); // parse response
+    addBubble("bot", res.ok ? data.reply : (typeof data.detail === "string" ? data.detail : "Please enter a message up to 1000 characters.")); // reply or error
+    if (res.ok && data.cards.length) renderCards(data.cards); // cards under the reply
+  } catch { typing.remove(); addBubble("bot", "Network problem. Please try again."); } // network failure
+  setBusy(false); // unblock input
+}
+
+document.getElementById("form").addEventListener("submit", (e) => { // form submit
+  e.preventDefault(); // stay on the page
+  const message = text.value.trim(); // clean input
+  if (!message || text.disabled) return; // ignore empty or blocked sends
+  text.value = ""; // clear the box
+  ask(message); // send it
+});
+
+document.getElementById("new").addEventListener("click", newChat); // New chat button
+
+SUGGESTIONS.forEach((q) => { // build suggestion chips
+  const chip = document.createElement("button"); // chip element
+  chip.type = "button"; // not a submit button
+  chip.className = "chip"; // chip style
+  chip.textContent = q; // chip label
+  chip.addEventListener("click", () => { if (!text.disabled) ask(q); }); // click sends it unless busy
+  document.getElementById("chips").appendChild(chip); // show chip
+});
+
+document.getElementById("loginForm").addEventListener("submit", async (e) => { // password submitted
+  e.preventDefault(); // stay on the page
+  const err = document.getElementById("loginErr"); // error line
+  err.textContent = ""; // clear old error
+  try {
+    const res = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: document.getElementById("user").value, password: document.getElementById("pw").value }) }); // ask server
+    const data = await res.json(); // parse response
+    if (!res.ok) { err.textContent = data.detail; return; } // wrong credentials, rate limited, or not configured
+    token = data.token; sessionStorage.setItem("token", token); // remember the token
+    document.getElementById("pw").value = ""; // clear the password box
+    document.getElementById("login").hidden = true; // hide login screen
+    newChat(); // start chatting
+  } catch { err.textContent = "Network problem. Please try again."; } // network failure
+});
+
+if (token) newChat(); else showLogin(); // chat if already logged in, otherwise ask for the password
+</script>
+</body>
+</html>
