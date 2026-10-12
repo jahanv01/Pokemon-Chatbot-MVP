@@ -5,7 +5,7 @@ Hi Tapan,
 
 Please find my submission for the Pokémon chatbot assignment.
 
-Repo: <ADD REPO LINK>
+Repo: https://github.com/jahanv01/Pokemon-Chatbot-MVP
 
 How to run
 1. `pip install -r requirements.txt`

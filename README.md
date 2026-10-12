@@ -24,7 +24,7 @@ Browser UI ──► FastAPI (login, sessions, locks) ──► LangGraph agent 
 You need **Python 3.12+** and a free **Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey).
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/jahanv01/Pokemon-Chatbot-MVP.git
 cd Pokemon-Chatbot-MVP
 bash setup.sh
 ```
