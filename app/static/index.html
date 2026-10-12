@@ -142,11 +142,18 @@ async function newChat() { // start a fresh session
     const res = await authed("/api/sessions", { method: "POST" }); // create session
     if (res.status === 401) return; // login screen is showing
     const data = await res.json(); // parse response
-    if (!res.ok) { addBubble("bot", data.detail); setBusy(true); return; } // show config errors and stay blocked
+    if (!res.ok) return startFailed(typeof data.detail === "string" ? data.detail : "Couldn't start a chat."); // e.g. 429 or 503
     sessionId = data.session_id; // remember session
     addBubble("bot", data.greeting); // show the greeting
-  } catch { addBubble("bot", "Couldn't start a chat. Please refresh the page."); } // network failure
+  } catch { return startFailed("Couldn't start a chat. Check your connection."); } // network failure
   setBusy(false); // allow typing
+}
+
+function startFailed(message) { // no session exists, so keep typing blocked but let the user retry
+  sessionId = null; // forget any old session
+  addBubble("bot", `${message} Click "New chat" to try again.`); // explain what to do
+  text.disabled = send.disabled = true; // nothing to send to
+  newBtn.disabled = false; // allow retrying without a page refresh
 }
 
 async function ask(message) { // send one message and show the reply

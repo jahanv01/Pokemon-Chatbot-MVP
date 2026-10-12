@@ -54,16 +54,7 @@ if [ "$WRITE_ENV" = "yes" ]; then
     read -r -s -p "Choose a chat password (hidden): " APP_ACCESS_PASSWORD; echo
   done
   export GOOGLE_API_KEY APP_ACCESS_USERNAME APP_ACCESS_PASSWORD  # hand the values to Python safely (no shell quoting issues)
-  "$VENV_PY" - <<'PY'  # build .env from .env.example, replacing only the three values
-import os
-values = {k: os.environ[k] for k in ("GOOGLE_API_KEY", "APP_ACCESS_USERNAME", "APP_ACCESS_PASSWORD")}  # what the user typed
-quote = lambda v: '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'  # safe for spaces, #, quotes
-lines = []  # output lines
-for line in open(".env.example", encoding="utf-8").read().splitlines():  # walk the template
-    key = line.split("=", 1)[0].strip()  # name before the "="
-    lines.append(f"{key}={quote(values[key])}" if key in values else line)  # replace our three, keep the rest
-open(".env", "w", encoding="utf-8", newline="\n").write("\n".join(lines) + "\n")  # save
-PY
+  "$VENV_PY" scripts/make_env.py  # builds .env from .env.example, quoting special characters safely (tested in tests/test_env_roundtrip.py)
   echo ".env written."
 fi
 

@@ -206,7 +206,9 @@ Copy `.env.example` to `.env` (the setup script does this for you). Settings are
 
 **Quotas:** free-tier Gemini usage is limited per model and the limits change, so see Google's [rate limit documentation](https://ai.google.dev/gemini-api/docs/rate-limits) and your AI Studio usage page. Usage per question varies: a simple question takes one model call, and a question that needs data takes at least two (one to choose a tool, one to write the answer), more if several tools are used. Model names also change; check which models your key can use.
 
-**Another provider:** install its package (for example `pip install langchain-openai`), set its key (for example `OPENAI_API_KEY`) and set `LLM_MODEL=openai:<model-name>`.
+**Another provider:** install its package (for example `pip install langchain-openai`), set its key (for example `OPENAI_API_KEY`) and set `LLM_MODEL=openai:<model-name>`. **Also clear or replace `LLM_FALLBACK_MODELS`** (for example set it to empty or to another model from the same provider). Its default is a Gemini model, which would otherwise still be used as the backup and needs `GOOGLE_API_KEY`.
+
+**Special characters in credentials:** `.env` is loaded without `${...}` expansion, so a password such as `pa${HOME}ss` is used exactly as typed. `setup.sh` quotes values that need it, and this is covered by a round-trip test. Docker's `--env-file` does not understand quotes, so with Docker use a password made of letters, digits and `_ @ % + : , . / -`.
 
 ## API reference
 
@@ -271,6 +273,7 @@ app/
   auth.py        login, tokens, rate limits
   main.py        FastAPI endpoints, failed-turn rollback, chat page route
   static/index.html   single-page chat UI (vanilla JS, marked + DOMPurify)
+scripts/         make_env.py (used by setup.sh to write .env safely)
 tests/           pytest suite (mocked PokeAPI, scripted fake LLM)
 setup.sh  Dockerfile  requirements.txt  .env.example  pytest.ini
 ```
