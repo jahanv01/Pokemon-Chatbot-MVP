@@ -4,8 +4,8 @@ import respx  # mocks httpx calls
 from langchain_core.messages import AIMessage  # scripted replies
 
 from app import main  # module under test
-from app.graph import build_graph  # graph factory
-from tests.fakes import FakeChatModel, mock_pokemon  # scripted model + PokeAPI mock
+from app.graph import build_graph, run_config  # graph factory + thread config
+from tests.fakes import FakeChatModel, mock_pokemon, tool_call  # scripted model + PokeAPI mock
 
 
 @pytest.fixture
@@ -96,3 +96,22 @@ async def test_missing_api_key_gives_friendly_503(monkeypatch):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url="http://t") as c:
         r = await c.post("/api/sessions")  # needs the graph
     assert r.status_code == 503 and "API key" in r.json()["detail"]  # friendly, not a raw 500
+
+
+@respx.mock
+async def test_failed_turn_is_rolled_back_and_retry_works(make_client):
+    mock_pokemon("pikachu", 25, ["electric"], 35)  # fake PokeAPI data
+    model = FakeChatModel(script=[tool_call("get_pokemon", {"name": "pikachu"})])  # tool call recorded, then the model "fails"
+    graph = build_graph(model)  # graph we can inspect
+    async with make_client([]) as c:
+        main.app.dependency_overrides[main.get_graph] = lambda: graph  # use our graph instead
+        sid = await new_session(c)
+        r = await c.post(f"/api/sessions/{sid}/messages", json={"message": "What's a Pikachu?"})  # fails after the tool ran
+        assert r.status_code == 502  # friendly error
+        stored = (await graph.aget_state(run_config(sid))).values["messages"]  # history after the failure
+        assert [m.content for m in stored] == ["Hey there, what’s up?"]  # half-finished turn was removed
+        model.script.extend([tool_call("get_pokemon", {"name": "pikachu"}), AIMessage("Pikachu is Electric.")])  # model recovers
+        r = await c.post(f"/api/sessions/{sid}/messages", json={"message": "What's a Pikachu?"})  # retry
+        assert r.status_code == 200 and r.json()["reply"] == "Pikachu is Electric."  # works
+        final = (await graph.aget_state(run_config(sid))).values["messages"]
+        assert sum(m.type == "human" for m in final) == 1  # the question is stored once, not duplicated

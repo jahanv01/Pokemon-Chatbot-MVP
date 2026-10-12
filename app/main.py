@@ -7,7 +7,7 @@ from typing import Annotated  # constrained string type
 
 from fastapi import Depends, FastAPI, HTTPException  # web framework pieces
 from fastapi.responses import FileResponse  # serve the chat page
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage  # message types
+from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage  # message types
 from pydantic import BaseModel, StringConstraints  # request validation
 
 from app.auth import require_auth, router as auth_router  # login + token check
@@ -22,6 +22,16 @@ SESSIONS: dict[str, asyncio.Lock] = {}  # session id -> lock that blocks overlap
 
 class MessageIn(BaseModel):
     message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=settings.max_message_chars)]  # 1-1000 chars, else 422
+
+
+async def rollback(graph, config: dict, keep: int) -> None:
+    try:
+        messages = (await graph.aget_state(config)).values["messages"]  # what is stored now
+        extra = [RemoveMessage(id=m.id) for m in messages[keep:]]  # everything this failed turn added
+        if extra:  # only touch the state if something was left behind
+            await graph.aupdate_state(config, {"messages": extra}, as_node="agent")  # restore history; as_node clears pending steps
+    except Exception:  # never let cleanup hide the original error
+        log.exception("Could not roll back the failed turn")
 
 
 @lru_cache
@@ -59,6 +69,7 @@ async def send_message(session_id: str, body: MessageIn, graph=Depends(get_graph
             result = await graph.ainvoke({"messages": [HumanMessage(body.message)]}, config)  # run the agent
         except Exception as exc:  # LLM down, bad key, recursion limit...
             log.exception("Chat turn failed")  # keep the real cause visible to the developer
+            await rollback(graph, config, before)  # drop half-finished messages so a retry starts clean
             raise HTTPException(502, "Sorry, I couldn't get an answer right now. Please try again.") from exc
     new = result["messages"][before:]  # only this turn's messages
     cards = [m.artifact for m in new if isinstance(m, ToolMessage) and m.artifact]  # UI cards from tool results

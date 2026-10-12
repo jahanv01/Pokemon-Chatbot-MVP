@@ -72,6 +72,7 @@ button:disabled, input:disabled { opacity:.5; cursor:not-allowed; } /* visible b
 const log = document.getElementById("log"); // message list element
 const text = document.getElementById("text"); // input element
 const send = document.getElementById("send"); // send button element
+const newBtn = document.getElementById("new"); // New chat button element
 const SUGGESTIONS = ["What's a Pikachu?", "How's that different from a Charizard?", "What does Eevee evolve into?"]; // starter chips
 const COLORS = { fire:"#f08030", water:"#6890f0", grass:"#78c850", electric:"#f8d030", flying:"#a890f0", poison:"#a040a0", normal:"#a8a878", ground:"#e0c068", rock:"#b8a038", bug:"#a8b820", ghost:"#705898", steel:"#b8b8d0", psychic:"#f85888", ice:"#98d8d8", dragon:"#7038f8", dark:"#705848", fairy:"#ee99ac", fighting:"#c03028" }; // type badge colours
 let sessionId = null; // current chat session
@@ -130,7 +131,7 @@ function renderCards(cards) { // show Pokémon cards side by side
 }
 
 function setBusy(busy) { // block or unblock input
-  text.disabled = send.disabled = busy; // disable box and button together
+  text.disabled = send.disabled = newBtn.disabled = busy; // block box, Send and New chat, so an old reply can't land in a new chat
   if (!busy) text.focus(); // ready for the next question
 }
 
