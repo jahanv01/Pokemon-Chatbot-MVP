@@ -23,35 +23,44 @@ Browser UI ──► FastAPI (login, sessions, locks) ──► LangGraph agent 
 
 You need **Python 3.12+** and a free **Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey).
 
+```bash
+git clone <repo-url>
+cd Pokemon-Chatbot-MVP
+bash setup.sh
+```
+
+`setup.sh` does everything: it creates the virtual environment, installs the packages, **asks you for your Gemini key and a chat username and password** (typed secrets are hidden), writes `.env`, and starts the app. Then open **http://127.0.0.1:8000** and log in with the username and password you just chose.
+
+- Works on macOS, Linux and Windows (run it from **Git Bash**, which comes with Git for Windows).
+- Run it again any time: it keeps your existing `.env` if you answer "Y".
+- `bash setup.sh --no-run` sets everything up without starting the server.
+- Later runs: `.venv/bin/python -m uvicorn app.main:app` (Windows: `.venv/Scripts/python -m uvicorn app.main:app`).
+- `http://127.0.0.1:8000/health` returns `{"status":"ok"}` when the server is up.
+
+<details>
+<summary>Manual setup (without the script), and Docker</summary>
+
 **Windows (PowerShell)**
 
 ```powershell
-git clone <repo-url>
-cd Pokemon-Chatbot-MVP
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env
-# open .env and set GOOGLE_API_KEY, APP_ACCESS_USERNAME and APP_ACCESS_PASSWORD
+copy .env.example .env      # then edit .env: GOOGLE_API_KEY, APP_ACCESS_USERNAME, APP_ACCESS_PASSWORD
 python -m uvicorn app.main:app
 ```
 
 **macOS / Linux**
 
 ```bash
-git clone <repo-url>
-cd Pokemon-Chatbot-MVP
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-# open .env and set GOOGLE_API_KEY, APP_ACCESS_USERNAME and APP_ACCESS_PASSWORD
+cp .env.example .env        # then edit .env: GOOGLE_API_KEY, APP_ACCESS_USERNAME, APP_ACCESS_PASSWORD
 python -m uvicorn app.main:app
 ```
 
-Then open **http://127.0.0.1:8000**, log in with the username and password you put in `.env`, and start chatting. `http://127.0.0.1:8000/health` should return `{"status":"ok"}`.
-
-**With Docker instead**
+**Docker**
 
 ```bash
 docker build -t pokemon-chatbot .
@@ -67,6 +76,8 @@ The three values you must set in `.env`:
 | `APP_ACCESS_PASSWORD` | Password for the chat login |
 
 Restart the server after editing `.env`.
+
+</details>
 
 ## What it does
 
@@ -201,7 +212,7 @@ app/
   main.py        FastAPI endpoints and the chat page route
   static/index.html   single-page chat UI (vanilla JS, marked + DOMPurify)
 tests/           pytest suite (mocked PokeAPI, scripted fake LLM)
-Dockerfile  requirements.txt  .env.example  pytest.ini
+setup.sh  Dockerfile  requirements.txt  .env.example  pytest.ini
 ```
 
 ## Tests
@@ -220,6 +231,7 @@ The suite runs with no API key, no password and no internet. PokeAPI is mocked w
 | "The chatbot isn't configured yet" (503) | `GOOGLE_API_KEY` is missing or wrong in `.env`. Restart after editing. |
 | "Sorry, I couldn't get an answer right now" (502) | The real cause is printed in the server terminal. `429 RESOURCE_EXHAUSTED` means that model's free quota is used up, so wait, add a fallback model, or use a paid key. `404 NOT_FOUND … model` means the model name is not available to your key. |
 | Answers are slow | Some Gemini models "think" before answering and free tiers can be busy. Prefer a flash-lite model (the default). |
+| `pip` fails with a path-too-long error on Windows | Clone into a shorter folder (for example `C:\\src\\pokemon`) or enable Windows long paths. |
 | Page loads but styling/markdown looks plain | The UI loads `marked` and `DOMPurify` from a CDN and needs internet access. |
 
 ## Known limitations and next steps
