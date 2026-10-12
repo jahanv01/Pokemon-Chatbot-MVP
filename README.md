@@ -84,7 +84,29 @@ When asked for something unsupported, the bot is instructed to say so instead of
 
 ## Quick start (from git clone to running)
 
-You need **Python 3.12+** and a **Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey).
+### Prerequisites
+
+| You need | Details |
+|---|---|
+| **Python 3.12 or newer** | Check with `python --version` (or `python3 --version`). It must include `pip` and `venv`, which come with the standard python.org installer; on Debian/Ubuntu install `python3-venv` as well. |
+| **Git** | To clone the repository. On Windows, Git for Windows also provides **Git Bash**, which runs `setup.sh`. |
+| **A Bash shell** | macOS and Linux have one. On Windows use Git Bash (or WSL). |
+| **A Gemini API key** | Create one in [Google AI Studio](https://aistudio.google.com/apikey). A free-tier key is enough to try the app. |
+| **Internet access** | To install packages from PyPI, and at runtime to reach PokeAPI, the Gemini API, and the CDN that serves the UI's markdown libraries. |
+| *(optional)* Docker | Only if you prefer the container route. |
+
+**Python packages** are installed automatically from [PyPI](https://pypi.org) into a local `.venv` by `setup.sh` (or by `pip install -r requirements.txt`). Nothing is installed globally.
+
+| Package | Used for |
+|---|---|
+| `langgraph`, `langchain` | The agent graph, tool calling and model abstraction |
+| `langchain-google-genai` | Gemini models (replace it to use another provider) |
+| `fastapi`, `uvicorn` | The web API and server |
+| `httpx` | Async calls to PokeAPI |
+| `pydantic-settings`, `python-dotenv` | Reading configuration from `.env` |
+| `pytest`, `pytest-asyncio`, `respx` | Tests (mocked PokeAPI, no key needed) |
+
+### Install and run
 
 ```bash
 git clone https://github.com/jahanv01/Pokemon-Chatbot-MVP.git
