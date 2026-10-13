@@ -5,7 +5,7 @@ A web chatbot that answers Pokémon questions using data from [PokeAPI](https://
 ## Contents
 
 1. [Overview and assignment requirements](#overview-and-assignment-requirements)
-2. [Example conversation](#example-conversation)
+2. [Demo and example conversation](#demo-and-example-conversation)
 3. [Three-minute evaluation walkthrough](#three-minute-evaluation-walkthrough)
 4. [Supported topics and limitations](#supported-topics-and-limitations)
 5. [Quick start](#quick-start-from-git-clone-to-running)
@@ -34,9 +34,31 @@ Browser UI ──► FastAPI (login, sessions, locks) ──► LangGraph agent 
 
 **Added beyond the brief:** Pokémon cards (artwork, type badges, stat bars, source link), typo tolerance ("Pikachoo" → Pikachu), exact dual-type weakness maths done in code, username/password login with rate limits, model fallback, and rollback of failed turns.
 
-## Example conversation
+## Demo and example conversation
 
-Abridged from real runs against `gemini-3.5-flash-lite`. Wording varies between runs because the answers are written by the model.
+Screenshots from a real run of the app (Gemini for the replies, PokeAPI for the data). They stand in for a video demo.
+
+**1. Login.** Only people with the username and password can use the chat.
+
+<img src="output_images/loginpage.png" alt="Login screen" width="640">
+
+**2. New chat.** The exact greeting, suggestion chips, and an input box.
+
+<img src="output_images/mainpage.png" alt="New chat with the greeting and suggestion chips" width="480">
+
+**3. "What's a Pikachu?"** A short answer plus a card (artwork, Pokédex number, category, type badge, stat bars, PokeAPI source link).
+
+<img src="output_images/chatbot-convo1.png" alt="Answer about Pikachu with a Pokémon card" width="480">
+
+**4. "How's that different from a Charizard?"** "That" is resolved from the conversation, and the comparison shows two cards side by side.
+
+<img src="output_images/chatbot-convo2.png" alt="Comparison of Pikachu and Charizard with two cards" width="480">
+
+**5. Off-topic and typo handling.** "plan a trip" gets a short redirect to Pokémon. "what is a pikachoo?" is corrected to Pikachu, and the bot says so.
+
+<img src="output_images/chatot-convo3.png" alt="Off-topic redirect and typo correction" width="480">
+
+**Example conversation.** Abridged from real runs against `gemini-3.5-flash-lite`. Wording varies between runs because the answers are written by the model.
 
 > **Bot:** Hey there, what’s up?
 > **You:** What's a Pikachu?
