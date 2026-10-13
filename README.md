@@ -192,9 +192,24 @@ Restart the server after editing `.env`.
 
 **The agent loop** (`app/graph.py`)
 
+```mermaid
+flowchart LR
+    S(["START"]) --> A["<b>agent</b><br/>system prompt + full history to the LLM<br/>(backup model if it errors)"]
+    A -- "tool calls requested" --> T["<b>tools</b> (ToolNode)<br/>get_pokemon, get_type_matchups,<br/>get_move, get_ability"]
+    A -- "no tool calls" --> E(["END: reply returned"])
+    T -- "tool results (and cards)" --> A
 ```
-START → agent (LLM) ──tool calls?──► tools (ToolNode) ──► agent … → END
-```
+
+**State and memory**
+
+| Piece | What it is |
+|---|---|
+| State | LangGraph's `MessagesState`: one `messages` list of human, AI and tool messages, merged by the `add_messages` reducer. |
+| Memory | An `InMemorySaver` checkpointer. The `thread_id` is the chat's session ID, so each chat has its own history and chats never share state. |
+| Greeting | Stored as the first AI message with `aupdate_state(..., as_node="agent")`. A leading AI message is hidden from the model but kept in the history. |
+| Tool results | A `ToolMessage` holds the JSON text the model reads. Its `artifact` holds the card for the UI. |
+| Routing | `tools_condition` sends the flow to `tools` when the model asked for a tool, otherwise to `END`. |
+| Failed turn | The messages added by the failed turn are removed with `RemoveMessage`, so a retry starts from the last good state. |
 
 - `StateGraph(MessagesState)` with an `agent` node and a `ToolNode(handle_tool_errors=True)`, so a PokeAPI outage becomes a message the bot can explain instead of crashing the request.
 - `InMemorySaver` is the checkpointer and `thread_id = session_id`; this is what gives each chat its memory.
