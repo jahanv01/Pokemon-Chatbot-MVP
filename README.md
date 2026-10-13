@@ -346,5 +346,7 @@ app/
   static/index.html   single-page chat UI (vanilla JS, marked + DOMPurify)
 scripts/         make_env.py (used by setup.sh and setup.ps1 to write .env safely)
 tests/           pytest suite (mocked PokeAPI, scripted fake LLM)
+output_images/   screenshots shown in the demo section of this README
+docs/            submission email draft
 setup.sh  setup.ps1  Dockerfile  requirements.txt  .env.example  pytest.ini
 ```
