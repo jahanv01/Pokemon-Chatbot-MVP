@@ -89,8 +89,8 @@ When asked for something unsupported, the bot is instructed to say so instead of
 | You need | Details |
 |---|---|
 | **Python 3.12 or newer** | Check with `python --version` (or `python3 --version`). It must include `pip` and `venv`, which come with the standard python.org installer; on Debian/Ubuntu install `python3-venv` as well. |
-| **Git** | To clone the repository. On Windows, Git for Windows also provides **Git Bash**, which runs `setup.sh`. |
-| **A Bash shell** | macOS and Linux have one. On Windows use Git Bash (or WSL). |
+| **Git** | To clone the repository. |
+| **A shell** | Windows: PowerShell (runs `setup.ps1`). macOS and Linux: Bash (runs `setup.sh`). Git Bash on Windows also works with `setup.sh`. |
 | **A Gemini API key** | Create one in [Google AI Studio](https://aistudio.google.com/apikey). A free-tier key is enough to try the app. |
 | **Internet access** | To install packages from PyPI, and at runtime to reach PokeAPI, the Gemini API, and the CDN that serves the UI's markdown libraries. |
 | *(optional)* Docker | Only if you prefer the container route. |
@@ -108,18 +108,28 @@ When asked for something unsupported, the bot is instructed to say so instead of
 
 ### Install and run
 
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/jahanv01/Pokemon-Chatbot-MVP.git
+cd Pokemon-Chatbot-MVP
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+**macOS / Linux** (or Git Bash on Windows)
+
 ```bash
 git clone https://github.com/jahanv01/Pokemon-Chatbot-MVP.git
 cd Pokemon-Chatbot-MVP
 bash setup.sh
 ```
 
-`setup.sh` creates the virtual environment, installs the packages, **asks for your Gemini key and a chat username and password** (typed secrets are hidden), writes `.env`, and starts the app. Then open **http://127.0.0.1:8000** and log in with the username and password you chose.
+Both scripts do the same thing: they create the virtual environment, install the packages, **ask for your Gemini key and a chat username and password** (typed secrets are hidden), write `.env`, and start the app. Then open **http://127.0.0.1:8000** and log in with the username and password you chose.
 
-- Works on macOS, Linux and Windows (use **Git Bash**, included with Git for Windows).
+- **Windows note:** in PowerShell, don't run `bash setup.sh`. There `bash` usually means WSL, which fails with `execvpe(/bin/bash) failed` if no Linux distro is installed. Use `setup.ps1` as shown. The `-ExecutionPolicy Bypass` part is needed because Windows blocks unsigned scripts by default; it applies to this one command only.
 - Run it again any time; it keeps your existing `.env` if you answer "Y".
-- `bash setup.sh --no-run` sets up without starting the server.
-- Start later with `.venv/bin/python -m uvicorn app.main:app` (Windows: `.venv/Scripts/python -m uvicorn app.main:app`).
+- Add `-NoRun` (PowerShell) or `--no-run` (bash) to set up without starting the server.
+- Start later with `.venv/bin/python -m uvicorn app.main:app` (Windows: `.venv\Scripts\python -m uvicorn app.main:app`).
 - `GET /health` returns `{"status":"ok"}` when the **web server** is running. It does not check Gemini or PokeAPI.
 
 <details>
@@ -230,7 +240,7 @@ Copy `.env.example` to `.env` (the setup script does this for you). Settings are
 
 **Another provider:** install its package (for example `pip install langchain-openai`), set its key (for example `OPENAI_API_KEY`) and set `LLM_MODEL=openai:<model-name>`. **Also clear or replace `LLM_FALLBACK_MODELS`** (for example set it to empty or to another model from the same provider). Its default is a Gemini model, which would otherwise still be used as the backup and needs `GOOGLE_API_KEY`.
 
-**Special characters in credentials:** `.env` is loaded without `${...}` expansion, so a password such as `pa${HOME}ss` is used exactly as typed. `setup.sh` quotes values that need it, and this is covered by a round-trip test. Docker's `--env-file` does not understand quotes, so with Docker use a password made of letters, digits and `_ @ % + : , . / -`.
+**Special characters in credentials:** `.env` is loaded without `${...}` expansion, so a password such as `pa${HOME}ss` is used exactly as typed. The setup scripts quote values that need it, and this is covered by a round-trip test. Docker's `--env-file` does not understand quotes, so with Docker use a password made of letters, digits and `_ @ % + : , . / -`.
 
 ## API reference
 
@@ -268,6 +278,8 @@ curl -s localhost:8000/api/sessions/$SID/messages -H "Authorization: Bearer $TOK
 | "The chatbot isn't configured yet" (503) when a chat starts | The model could not be set up, usually because `GOOGLE_API_KEY` is missing. Restart after editing `.env`. |
 | "Sorry, I couldn't get an answer right now" (502) | An invalid key, a model name your key can't use, a quota limit or an outage fails at the first model request, so you see it here rather than at startup. The real cause is printed in the server terminal. A `429 RESOURCE_EXHAUSTED` means that model's quota is used up: wait, add a fallback model, or use a key with higher limits. A `404 NOT_FOUND … model` means the model name isn't available to your key. |
 | Answers are slow | Some models spend time "thinking" and free tiers can be busy. The default is a lighter model. |
+| PowerShell: `bash setup.sh` prints `execvpe(/bin/bash) failed` | In PowerShell `bash` is the WSL launcher and no Linux distro is installed. Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1` instead (or use Git Bash). |
+| PowerShell: "running scripts is disabled on this system" | Run the script with `-ExecutionPolicy Bypass` as shown in the quick start. |
 | `pip` fails with a path-too-long error on Windows | Clone into a shorter folder (for example `C:\src\pokemon`) or enable Windows long paths. |
 | Page loads but markdown looks plain | The UI loads `marked` and `DOMPurify` from a CDN and needs internet access. |
 
@@ -295,7 +307,7 @@ app/
   auth.py        login, tokens, rate limits
   main.py        FastAPI endpoints, failed-turn rollback, chat page route
   static/index.html   single-page chat UI (vanilla JS, marked + DOMPurify)
-scripts/         make_env.py (used by setup.sh to write .env safely)
+scripts/         make_env.py (used by setup.sh and setup.ps1 to write .env safely)
 tests/           pytest suite (mocked PokeAPI, scripted fake LLM)
-setup.sh  Dockerfile  requirements.txt  .env.example  pytest.ini
+setup.sh  setup.ps1  Dockerfile  requirements.txt  .env.example  pytest.ini
 ```

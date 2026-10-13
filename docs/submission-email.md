@@ -8,9 +8,10 @@ Please find my submission for the Pokémon chatbot assignment.
 Repo: https://github.com/jahanv01/Pokemon-Chatbot-MVP
 
 How to run
-1. `pip install -r requirements.txt`
-2. Copy `.env.example` to `.env` and add a Gemini API key (free tier) and an access username and password
-3. `uvicorn app.main:app`, then open http://127.0.0.1:8000 and log in with that username and password
+1. `git clone https://github.com/jahanv01/Pokemon-Chatbot-MVP.git` and `cd Pokemon-Chatbot-MVP`
+2. Windows PowerShell: `powershell -ExecutionPolicy Bypass -File .\setup.ps1`   |   macOS/Linux: `bash setup.sh`
+   (it asks for a Gemini API key, free tier is fine, and a username and password of your choice)
+3. Open http://127.0.0.1:8000 and log in with that username and password
 (Or with Docker: `docker build -t pokemon-chatbot .` then `docker run --env-file .env -p 8000:8000 pokemon-chatbot`.)
 Tests need no key: `pytest`.
 
