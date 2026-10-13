@@ -20,12 +20,17 @@ if (-not $py) {  # nothing suitable found
 }
 
 # ---- 2. virtual environment + dependencies ----
-if (-not (Test-Path ".venv")) {  # only create it the first time
+$venvPy = ".venv\Scripts\python.exe"  # the environment's own python
+$healthy = $false  # is there a usable environment already?
+if (Test-Path $venvPy) {  # a folder alone is not enough: an interrupted earlier run leaves a half-built .venv
+    try { & $venvPy -m pip --version 2>$null | Out-Null; $healthy = ($LASTEXITCODE -eq 0) } catch { }  # usable only if pip works
+}
+if (-not $healthy) {  # missing or broken: (re)build it
+    if (Test-Path ".venv") { Write-Host "Removing an incomplete .venv from an earlier attempt..."; Remove-Item -Recurse -Force .venv }
     Write-Host "Creating virtual environment..."
     & $py -m venv .venv  # new isolated environment in .\.venv
     if ($LASTEXITCODE -ne 0) { throw "Could not create the virtual environment." }
 }
-$venvPy = ".venv\Scripts\python.exe"  # the environment's own python
 Write-Host "Installing packages (this can take a minute)..."
 & $venvPy -m pip install -q -r requirements.txt  # install everything the app needs
 if ($LASTEXITCODE -ne 0) { throw "pip install failed. See the message above." }

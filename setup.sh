@@ -20,14 +20,15 @@ if [ -z "$PY" ]; then  # nothing suitable found
 fi
 
 # ---- 2. virtual environment + dependencies ----
-if [ ! -d .venv ]; then  # only create it the first time
+venv_python() {  # prints the environment's own python path for this OS layout
+  if [ -f .venv/Scripts/python.exe ] || [ -x .venv/Scripts/python ]; then echo ".venv/Scripts/python"; else echo ".venv/bin/python"; fi
+}
+VENV_PY="$(venv_python)"  # current guess (may not exist yet)
+if ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then  # a folder alone is not enough: an interrupted earlier run leaves a half-built .venv
+  if [ -d .venv ]; then echo "Removing an incomplete .venv from an earlier attempt..."; rm -rf .venv; fi  # clear the broken one
   echo "Creating virtual environment..."
   "$PY" -m venv .venv  # new isolated environment in ./.venv
-fi
-if [ -x .venv/Scripts/python ] || [ -f .venv/Scripts/python.exe ]; then  # Windows layout (Git Bash)
-  VENV_PY=".venv/Scripts/python"
-else  # macOS / Linux layout
-  VENV_PY=".venv/bin/python"
+  VENV_PY="$(venv_python)"  # recompute now that it exists
 fi
 echo "Installing packages (this can take a minute)..."
 "$VENV_PY" -m pip install -q -r requirements.txt  # install everything the app needs
